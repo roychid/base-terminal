@@ -3,143 +3,288 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>me@roychid — listening…</title>
-<link href="https://fonts.googleapis.com/css2?family=Ubuntu+Mono&display=swap" rel="stylesheet">
+<title>me@roychid</title>
+<link href="https://fonts.googleapis.com/css2?family=VT323&family=Share+Tech+Mono&display=swap" rel="stylesheet">
 <style>
-* { box-sizing: border-box; }
+:root {
+  --amber: #ffaa00;
+  --amber-dim: #7a5000;
+  --red: #ff3300;
+  --bg: #060400;
+}
 
-body {
-  margin: 0;
-  height: 100dvh;
-  background-color: #02360a;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  font-family: 'Ubuntu Mono', monospace;
-  touch-action: manipulation;
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--bg);
   overflow: hidden;
+  font-family: 'Share Tech Mono', monospace;
   -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  cursor: none;
 }
 
-.terminal {
-  width: min(720px, 96vw);
-  height: min(520px, 80dvh);
-  border-radius: clamp(8px, 2vw, 16px);
-  overflow: hidden;
-  backdrop-filter: blur(14px);
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.25);
-  box-shadow: 0 20px 50px rgba(0,0,0,0.45);
-  display: flex;
-  flex-direction: column;
+/* ── CRT OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 100;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0,0,0,0.13) 0px,
+    rgba(0,0,0,0.13) 1px,
+    transparent 1px,
+    transparent 3px
+  );
+  pointer-events: none;
 }
 
-.titlebar {
-  height: 30px;
-  background: rgba(40,40,40,0.55);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 12px;
-  color: #ccc;
-  font-size: clamp(0.65rem, 2vw, 0.85rem);
-  flex-shrink: 0;
-  user-select: none;
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 99;
+  background: radial-gradient(ellipse at center, transparent 60%, rgba(0,0,0,0.65) 100%);
+  pointer-events: none;
 }
 
-.dot { width: 12px; height: 12px; border-radius: 50%; flex-shrink: 0; }
-.red    { background: #ff5f56; }
-.yellow { background: #ffbd2e; }
-.green  { background: #27c93f; }
-
-.content {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  cursor: pointer;
-}
-
-canvas {
-  position: absolute;
-  top: 0; left: 0;
+/* ── MAIN CANVAS ── */
+#canvas {
+  position: fixed;
+  inset: 0;
   width: 100%;
   height: 100%;
 }
 
-.terminal-text {
-  position: absolute;
-  bottom: 18px;
-  left: 18px;
-  color: #7fffd4;
-  font-size: clamp(0.7rem, 2.2vw, 1rem);
-  white-space: pre;
-  z-index: 2;
+/* ── HUD ELEMENTS ── */
+.hud {
+  position: fixed;
+  z-index: 50;
   pointer-events: none;
 }
 
-.cursor {
+.hud-top {
+  top: 0; left: 0; right: 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: clamp(12px, 3vw, 24px);
+}
+
+.hud-logo {
+  font-family: 'VT323', monospace;
+  font-size: clamp(2rem, 6vw, 4rem);
+  color: var(--amber);
+  line-height: 1;
+  text-shadow: 0 0 20px rgba(255,170,0,0.5);
+  letter-spacing: 0.02em;
+}
+
+.hud-status {
+  text-align: right;
+  font-size: clamp(0.55rem, 1.5vw, 0.7rem);
+  color: var(--amber-dim);
+  line-height: 2;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.hud-status .live {
+  color: var(--red);
+  text-shadow: 0 0 8px rgba(255,51,0,0.8);
+}
+
+/* ── SPECTRUM BAR ── */
+#spectrum {
+  position: fixed;
+  bottom: 80px;
+  left: 0; right: 0;
+  height: clamp(40px, 8vh, 80px);
+  z-index: 50;
+}
+
+/* ── BOTTOM STRIP ── */
+.hud-bottom {
+  bottom: 0; left: 0; right: 0;
+  padding: clamp(10px, 2vw, 20px) clamp(12px, 3vw, 24px);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  border-top: 1px solid rgba(255,170,0,0.12);
+  background: linear-gradient(to top, rgba(6,4,0,0.9) 0%, transparent 100%);
+}
+
+.prompt-line {
+  font-size: clamp(0.65rem, 1.8vw, 0.85rem);
+  color: var(--amber);
+  letter-spacing: 0.05em;
+  text-shadow: 0 0 8px rgba(255,170,0,0.4);
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.cursor-block {
   display: inline-block;
-  width: clamp(5px, 1.5vw, 8px);
-  background: #7fffd4;
-  margin-left: 3px;
-  animation: blink 1s infinite;
+  width: clamp(6px, 1.5vw, 9px);
+  height: 1em;
+  background: var(--amber);
+  margin-left: 2px;
+  vertical-align: middle;
+  animation: blink 1s step-end infinite;
+  box-shadow: 0 0 6px rgba(255,170,0,0.9);
 }
 
 @keyframes blink { 50% { opacity: 0; } }
 
-.tap-hint {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  color: rgba(127,255,212,0.5);
-  font-family: 'Ubuntu Mono', monospace;
-  font-size: clamp(0.75rem, 2.5vw, 0.9rem);
-  text-align: center;
-  pointer-events: none;
-  transition: opacity 0.6s;
-  z-index: 3;
-  line-height: 2;
-  white-space: nowrap;
+/* ── METER BARS (corners) ── */
+.meter {
+  display: flex;
+  gap: 3px;
+  align-items: flex-end;
 }
-.tap-hint.hidden { opacity: 0; }
+.meter-bar {
+  width: clamp(3px, 0.8vw, 6px);
+  background: var(--amber-dim);
+  border-radius: 1px;
+  transition: height 0.05s, background 0.1s;
+}
+
+/* ── START SCREEN ── */
+#start {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  background: var(--bg);
+  transition: opacity 0.8s;
+}
+#start.hidden { opacity: 0; pointer-events: none; }
+
+.start-logo {
+  font-family: 'VT323', monospace;
+  font-size: clamp(3rem, 12vw, 7rem);
+  color: var(--amber);
+  text-shadow: 0 0 40px rgba(255,170,0,0.4);
+  text-align: center;
+  line-height: 1;
+  animation: flicker 4s infinite;
+}
+
+@keyframes flicker {
+  0%,100% { opacity: 1; }
+  92% { opacity: 1; }
+  93% { opacity: 0.4; }
+  94% { opacity: 1; }
+  96% { opacity: 0.7; }
+  97% { opacity: 1; }
+}
+
+.start-sub {
+  font-size: clamp(0.65rem, 2vw, 0.8rem);
+  color: var(--amber-dim);
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.start-btn {
+  margin-top: 12px;
+  font-family: 'VT323', monospace;
+  font-size: clamp(1.2rem, 4vw, 1.8rem);
+  color: var(--bg);
+  background: var(--amber);
+  border: none;
+  padding: 8px 32px;
+  letter-spacing: 0.15em;
+  cursor: pointer;
+  text-transform: uppercase;
+  box-shadow: 0 0 30px rgba(255,170,0,0.3);
+  transition: box-shadow 0.2s, transform 0.1s;
+}
+.start-btn:active { transform: scale(0.97); }
 </style>
 </head>
 <body>
 
-<div class="terminal">
-  <div class="titlebar">
-    <div class="dot red"></div>
-    <div class="dot yellow"></div>
-    <div class="dot green"></div>
-    me@roychid — listening…
-  </div>
-  <div class="content" id="content">
-    <canvas id="canvas"></canvas>
-    <div class="terminal-text" id="terminalText"></div>
-    <div class="tap-hint" id="hint">▶ tap to play</div>
+<!-- start screen -->
+<div id="start">
+  <div class="start-logo">me@roychid</div>
+  <div class="start-sub">bass reactive visualizer</div>
+  <button class="start-btn" id="startBtn">▶ play</button>
+</div>
+
+<!-- canvas -->
+<canvas id="canvas"></canvas>
+
+<!-- spectrum -->
+<canvas id="spectrum"></canvas>
+
+<!-- HUD top -->
+<div class="hud hud-top">
+  <div class="hud-logo">me@roychid</div>
+  <div class="hud-status">
+    <div><span class="live">● REC</span></div>
+    <div id="statBass">BASS ░░░░░</div>
+    <div id="statMid">MID  ░░░░░</div>
   </div>
 </div>
 
-<script>
-/* ---------- COLORS ---------- */
-const colors = ["#ff00ff", "#02360b", "#02360a"];
+<!-- HUD bottom -->
+<div class="hud hud-bottom">
+  <div class="meter" id="meter"></div>
+  <div class="prompt-line" id="promptLine"><span id="termText"></span><span class="cursor-block"></span></div>
+</div>
 
-/* ---------- CANVAS ---------- */
-const canvas = document.getElementById("canvas");
-const ctx    = canvas.getContext("2d");
-const hint   = document.getElementById("hint");
+<script>
+/* ═══════════ CANVAS ═══════════ */
+const canvas  = document.getElementById("canvas");
+const ctx     = canvas.getContext("2d");
+const specCvs = document.getElementById("spectrum");
+const specCtx = specCvs.getContext("2d");
 
 function resize() {
-  canvas.width  = canvas.offsetWidth;
-  canvas.height = canvas.offsetHeight;
+  canvas.width   = window.innerWidth;
+  canvas.height  = window.innerHeight;
+  specCvs.width  = window.innerWidth;
+  specCvs.height = specCvs.offsetHeight;
+  buildMeter();
 }
 window.addEventListener("resize", resize);
 resize();
 
-/* ---------- AUDIO SETUP ---------- */
+/* ═══════════ METER BARS ═══════════ */
+const meterEl = document.getElementById("meter");
+const METER_COUNT = 12;
+let meterBars = [];
+
+function buildMeter() {
+  meterEl.innerHTML = "";
+  meterBars = [];
+  for (let i = 0; i < METER_COUNT; i++) {
+    const b = document.createElement("div");
+    b.className = "meter-bar";
+    const h = 4 + i * 2;
+    b.style.height = h + "px";
+    meterEl.appendChild(b);
+    meterBars.push(b);
+  }
+}
+
+function updateMeter(level) { // 0–1
+  meterBars.forEach((b, i) => {
+    const threshold = i / METER_COUNT;
+    const lit = level > threshold;
+    b.style.background = lit
+      ? (i > 9 ? "#ff3300" : i > 7 ? "#ffcc00" : "#ffaa00")
+      : "#2a1800";
+    b.style.boxShadow = lit ? `0 0 4px rgba(255,170,0,0.6)` : "none";
+  });
+}
+
+/* ═══════════ AUDIO ═══════════ */
 let audioCtx, analyser, freqData, audio;
-let started = false;
 
 function setupAudio() {
   audio = new Audio();
@@ -147,100 +292,171 @@ function setupAudio() {
   audio.crossOrigin = "anonymous";
 
   audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-  const source = audioCtx.createMediaElementSource(audio);
-  analyser = audioCtx.createAnalyser();
-  analyser.fftSize = 1024;
-  source.connect(analyser);
+  const src = audioCtx.createMediaElementSource(audio);
+  analyser  = audioCtx.createAnalyser();
+  analyser.fftSize = 2048;
+  src.connect(analyser);
   analyser.connect(audioCtx.destination);
   freqData = new Uint8Array(analyser.frequencyBinCount);
 }
 
-/* ---------- VARIABLES ---------- */
+/* ═══════════ STATE ═══════════ */
 let t = 0;
-const waves = [];
-let bassSmoothed = 0, midSmoothed = 0, trebleSmoothed = 0;
-
-/* ---------- UTILITY ---------- */
+let bassS = 0, midS = 0, trebleS = 0;
 const lerp = (a, b, f) => a + (b - a) * f;
 
-/* ---------- ANIMATE ---------- */
-function animate() {
-  requestAnimationFrame(animate);
+const particles = [];
+const rings     = [];
+let lastBass    = 0;
+
+/* ═══════════ PARTICLES ═══════════ */
+function burst(cx, cy, intensity) {
+  const n = Math.floor(6 + intensity * 0.05);
+  for (let i = 0; i < n; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const s = 1.5 + Math.random() * intensity * 0.03;
+    particles.push({
+      x: cx, y: cy, vx: Math.cos(a)*s, vy: Math.sin(a)*s,
+      life: 1, decay: 0.018 + Math.random()*0.01,
+      r: 1.5 + Math.random()*2,
+      hot: Math.random() > 0.6
+    });
+  }
+}
+
+/* ═══════════ DRAW ═══════════ */
+function draw() {
+  requestAnimationFrame(draw);
 
   if (analyser) analyser.getByteFrequencyData(freqData);
 
-  const cx = canvas.width / 2;
-  const cy = canvas.height / 2;
-  t += 0.02;
+  const W = canvas.width, H = canvas.height;
+  const cx = W / 2, cy = H / 2;
+  t += 0.016;
 
-  const bass   = freqData ? freqData.slice(0, 8).reduce((a,b) => a+b, 0) / 8    : 0;
-  const mid    = freqData ? freqData.slice(8, 64).reduce((a,b) => a+b, 0) / 56  : 0;
-  const treble = freqData ? freqData.slice(64, 256).reduce((a,b) => a+b, 0) / 192 : 0;
+  const bass   = freqData ? freqData.slice(0,8).reduce((a,b)=>a+b,0)/8 : 0;
+  const mid    = freqData ? freqData.slice(8,64).reduce((a,b)=>a+b,0)/56 : 0;
+  const treble = freqData ? freqData.slice(64,256).reduce((a,b)=>a+b,0)/192 : 0;
 
-  bassSmoothed   = lerp(bassSmoothed, bass, 0.2);
-  midSmoothed    = lerp(midSmoothed, mid, 0.2);
-  trebleSmoothed = lerp(trebleSmoothed, treble, 0.2);
+  bassS   = lerp(bassS, bass, 0.18);
+  midS    = lerp(midS, mid, 0.18);
+  trebleS = lerp(trebleS, treble, 0.18);
 
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-  /* CORE PULSE */
-  const coreRadius = 25 + bassSmoothed * 0.6 + Math.sin(t * 6) * 3;
-  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, coreRadius);
-  grad.addColorStop(0, colors[0]);
-  grad.addColorStop(1, "rgba(0,255,255,0)");
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(cx, cy, coreRadius, 0, Math.PI * 2);
-  ctx.fill();
-
-  /* WAVES */
-  waves.push({ radius: coreRadius, alpha: 0.5 });
-  for (let i = waves.length - 1; i >= 0; i--) {
-    const w = waves[i];
-    w.radius += 4 + bassSmoothed * 0.05;
-    w.alpha  -= 0.015;
-    if (w.alpha <= 0) { waves.splice(i, 1); continue; }
-    ctx.strokeStyle = `rgba(176,255,255,${w.alpha})`;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(cx, cy, w.radius, 0, Math.PI * 2);
-    ctx.stroke();
+  /* beat */
+  if (bass - lastBass > 35 && bass > 140) {
+    burst(cx, cy, bass);
+    rings.push({ r: 30, alpha: 0.8, hot: bass > 180 });
   }
+  lastBass = bass;
 
-  /* RADIAL LINES */
-  const lineCount = 20;
-  for (let i = 0; i < lineCount; i++) {
-    const angle  = t + (i / lineCount) * Math.PI * 2;
-    const length = 50 + midSmoothed * 0.7;
-    ctx.strokeStyle = colors[1];
-    ctx.lineWidth   = 1 + trebleSmoothed * 0.02;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(cx + Math.cos(angle) * length, cy + Math.sin(angle) * length);
-    ctx.stroke();
-  }
+  /* clear */
+  ctx.fillStyle = `rgba(6,4,0,${bassS > 100 ? 0.55 : 0.7})`;
+  ctx.fillRect(0, 0, W, H);
 
-  /* ROTATING ARC RINGS */
-  for (let r = 0; r < 3; r++) {
-    const radius   = 90 + r * 22 + trebleSmoothed * 0.4;
-    const segments = 6 + r * 2;
-    const rotation = t * (0.6 + r * 0.2);
+  /* ── RINGS ── */
+  for (let i = rings.length-1; i >= 0; i--) {
+    const rg = rings[i];
+    rg.r     += 5 + bassS * 0.04;
+    rg.alpha -= 0.014;
+    if (rg.alpha <= 0) { rings.splice(i,1); continue; }
+    ctx.save();
+    ctx.strokeStyle = rg.hot
+      ? `rgba(255,51,0,${rg.alpha})`
+      : `rgba(255,170,0,${rg.alpha})`;
     ctx.lineWidth   = 2;
-    ctx.strokeStyle = colors[2];
-    for (let i = 0; i < segments; i++) {
-      const start = rotation + (i / segments) * Math.PI * 2;
-      const end   = start + Math.PI / segments * 0.6;
-      ctx.beginPath();
-      ctx.arc(cx, cy, radius, start, end);
-      ctx.stroke();
+    ctx.shadowBlur  = 16;
+    ctx.shadowColor = rg.hot ? "#ff3300" : "#ffaa00";
+    ctx.beginPath();
+    ctx.arc(cx, cy, rg.r, 0, Math.PI*2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── RADIAL FREQUENCY BARS ── */
+  const barCount = 120;
+  const binStep  = Math.floor(freqData ? freqData.length / barCount : 1);
+  for (let i = 0; i < barCount; i++) {
+    const val    = freqData ? freqData[i * binStep] / 255 : 0;
+    const angle  = (i / barCount) * Math.PI * 2 - Math.PI/2 + t * 0.15;
+    const inner  = 70 + midS * 0.2;
+    const outer  = inner + val * (80 + bassS * 0.5);
+    const alpha  = 0.4 + val * 0.6;
+    const hot    = val > 0.7;
+
+    ctx.save();
+    ctx.strokeStyle = hot
+      ? `rgba(255,80,0,${alpha})`
+      : `rgba(255,${Math.floor(100 + val*70)},0,${alpha})`;
+    ctx.lineWidth   = 1.5 + val * 1.5;
+    ctx.shadowBlur  = hot ? 12 : 4;
+    ctx.shadowColor = hot ? "#ff3300" : "#ffaa00";
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(angle)*inner, cy + Math.sin(angle)*inner);
+    ctx.lineTo(cx + Math.cos(angle)*outer, cy + Math.sin(angle)*outer);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* ── CORE ── */
+  const cr   = 18 + bassS * 0.35 + Math.sin(t*8)*2;
+  const grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, cr * 3);
+  grad.addColorStop(0,   "rgba(255,255,220,1)");
+  grad.addColorStop(0.15,"rgba(255,170,0,0.9)");
+  grad.addColorStop(0.5, "rgba(255,60,0,0.3)");
+  grad.addColorStop(1,   "rgba(0,0,0,0)");
+  ctx.save();
+  ctx.shadowBlur  = 50;
+  ctx.shadowColor = bassS > 150 ? "#ff3300" : "#ffaa00";
+  ctx.fillStyle   = grad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, cr * 3, 0, Math.PI*2);
+  ctx.fill();
+  ctx.restore();
+
+  /* ── PARTICLES ── */
+  for (let i = particles.length-1; i >= 0; i--) {
+    const p = particles[i];
+    p.x += p.vx; p.y += p.vy; p.vy += 0.05;
+    p.life -= p.decay;
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+    ctx.save();
+    ctx.globalAlpha = p.life;
+    ctx.shadowBlur  = 6;
+    ctx.shadowColor = p.hot ? "#ff3300" : "#ffaa00";
+    ctx.fillStyle   = p.hot ? "#ff5500" : "#ffaa00";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  /* ── SPECTRUM BAR ── */
+  const sW = specCvs.width, sH = specCvs.height;
+  specCtx.clearRect(0, 0, sW, sH);
+  if (freqData) {
+    const bw   = sW / 128;
+    for (let i = 0; i < 128; i++) {
+      const v   = freqData[i] / 255;
+      const bh  = v * sH;
+      const hot = v > 0.75;
+      specCtx.fillStyle = hot
+        ? `rgba(255,51,0,${0.5+v*0.5})`
+        : `rgba(255,${Math.floor(100+v*70)},0,${0.4+v*0.5})`;
+      specCtx.fillRect(i * bw, sH - bh, bw - 1, bh);
     }
   }
 
-  /* TERMINAL FLASH */
-  terminalText.style.color = bassSmoothed > 150 ? colors[1] : "#7fffd4";
+  /* ── HUD STATS ── */
+  const b5 = Math.round(bassS/255*5);
+  const m5 = Math.round(midS/255*5);
+  document.getElementById("statBass").textContent =
+    "BASS " + "█".repeat(b5) + "░".repeat(5-b5);
+  document.getElementById("statMid").textContent  =
+    "MID  " + "█".repeat(m5) + "░".repeat(5-m5);
+  updateMeter(bassS / 255);
 }
 
-/* ---------- TERMINAL TYPING ---------- */
+/* ═══════════ TYPING ═══════════ */
 const lines = [
   "me@reality ~$ listening to the drop",
   "me@reality ~$ focus on the vibe",
@@ -251,52 +467,46 @@ const lines = [
   "me@reality ~$ coding in the bass zone",
   "me@reality ~$ someone just said 'wow' somewhere",
   "me@reality ~$ warning: happiness overload",
-  "me@reality ~$ do a dance, physics be damned"
+  "me@reality ~$ do a dance, physics be damned",
+  "me@reality ~$ bass.exe has entered the chat",
+  "me@reality ~$ sudo feel the groove",
 ];
 
-const terminalText = document.getElementById("terminalText");
-let lineIndex = 0, charIndex = 0;
+const termText = document.getElementById("termText");
+let li = 0, ci = 0;
 
 function type() {
-  if (lineIndex >= lines.length) {
-    setTimeout(() => {
-      terminalText.innerHTML = "";
-      lineIndex = 0; charIndex = 0;
-      type();
-    }, 2000);
+  if (li >= lines.length) {
+    setTimeout(() => { termText.textContent = ""; li = 0; ci = 0; type(); }, 2000);
     return;
   }
-  const current = lines[lineIndex];
-  terminalText.innerHTML = current.slice(0, charIndex) + "<span class='cursor'></span>";
-  charIndex++;
-  if (charIndex > current.length) {
-    charIndex = 0; lineIndex++;
-    setTimeout(type, 600);
-  } else {
-    setTimeout(type, 35);
-  }
+  const cur = lines[li];
+  termText.textContent = cur.slice(0, ci);
+  ci++;
+  if (ci > cur.length) { ci = 0; li++; setTimeout(type, 700); }
+  else setTimeout(type, 38);
 }
 
-/* ---------- START ON GESTURE ---------- */
-function start() {
+/* ═══════════ START ═══════════ */
+const startEl  = document.getElementById("start");
+const startBtn = document.getElementById("startBtn");
+let started = false;
+
+function begin() {
   if (started) return;
   started = true;
-  setupAudio();          // AudioContext created inside user gesture — works on iOS
+  setupAudio();
   audioCtx.resume();
-  audio.play().catch(() => {});
-  hint.classList.add("hidden");
+  audio.play().catch(()=>{});
+  startEl.classList.add("hidden");
+  setTimeout(() => startEl.style.display = "none", 900);
 }
 
-document.getElementById("content").addEventListener("click", start);
-document.getElementById("content").addEventListener("touchend", e => {
-  e.preventDefault();
-  start();
-});
+startBtn.addEventListener("click",    e => { e.stopPropagation(); begin(); });
+startBtn.addEventListener("touchend", e => { e.preventDefault(); e.stopPropagation(); begin(); });
 
-/* ---------- KICK OFF ---------- */
-animate();
+draw();
 type();
 </script>
-
 </body>
 </html>
