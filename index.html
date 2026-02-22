@@ -112,11 +112,12 @@ canvas {
   <div class="content">
     <canvas id="canvas"></canvas>
     <div class="terminal-text" id="terminalText"></div>
-    <div class="tap-hint" id="hint">tap to start</div>
+    <div class="tap-hint" id="hint">tap to load a song<br><span style="font-size:0.75em;opacity:0.6">drag & drop also works</span></div>
   </div>
 </div>
 
-<audio id="audio" src="Never_Say_Never_(_ft._Jaden_Smith).mp3" preload="auto"></audio>
+<audio id="audio" preload="auto"></audio>
+<input type="file" id="filePicker" accept="audio/*" style="display:none">
 
 <script>
 /* ---------- COLORS ---------- */
@@ -267,16 +268,37 @@ function type() {
   }
 }
 
-/* ---------- START ---------- */
-function start() {
-  if (started) return;
-  started = true;
+/* ---------- LOAD & PLAY ---------- */
+const filePicker = document.getElementById("filePicker");
+
+function loadFile(file) {
+  if (!file || !file.type.startsWith("audio")) return;
+  audio.src = URL.createObjectURL(file);
   audioCtx.resume().then(() => audio.play().catch(() => {}));
   hint.classList.add("hidden");
+  started = true;
+
+  // show song name in titlebar
+  document.querySelector(".titlebar").lastChild.textContent =
+    " me@roychid — " + file.name.replace(/\.[^/.]+$/, "");
 }
 
-document.body.addEventListener("click",      start);
-document.body.addEventListener("touchstart", start, { passive: true });
+filePicker.addEventListener("change", () => loadFile(filePicker.files[0]));
+
+function triggerPicker() {
+  audioCtx.resume();
+  filePicker.click();
+}
+
+document.body.addEventListener("click",      triggerPicker);
+document.body.addEventListener("touchstart", triggerPicker, { passive: true });
+
+/* drag & drop */
+document.body.addEventListener("dragover", e => e.preventDefault());
+document.body.addEventListener("drop", e => {
+  e.preventDefault();
+  loadFile(e.dataTransfer.files[0]);
+});
 
 animate();
 type();
